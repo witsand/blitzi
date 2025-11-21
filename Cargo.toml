@@ -2,6 +2,11 @@
 name = "blitzi"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+authors = [ "elsirion" ]
+description = "Easy to use Bitcoin Lighning client that uses Fedimint as its backend."
+keywords = ["Bitcoin", "Lightning", "Fedimint"]
+categories = ["cryptography::cryptocurrencies"]
 
 [dependencies]
 fedimint-bip39 = "0.9.0"
