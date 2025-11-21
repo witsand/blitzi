@@ -1,5 +1,7 @@
 # Blitzi: Lightning made easy
 
+<img src="blitzi.png" alt="Blitzi logo" align="right" width="300">
+
 [![crates.io](https://img.shields.io/crates/v/blitzi.svg)](https://crates.io/crates/blitzi)
 [![docs.rs](https://docs.rs/blitzi/badge.svg)](https://docs.rs/blitzi)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -62,3 +64,8 @@ about them.
 
 [E-Cash Club]: (https://observer.fedimint.org/federations/aeca6cc80ffc530bd2d54b09681f6edb9a415c362e4af2fe3d5e04137006fa21)
 [Fedimint Observer]: (https://observer.fedimint.org/)
+
+## About the name
+
+Lightning bolts are called "Blitz" in German and adding an "i" at the end
+makes it sound cute and wholesome for me :D

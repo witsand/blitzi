@@ -54,7 +54,11 @@
 //!
 //! [E-Cash Club]: (https://observer.fedimint.org/federations/aeca6cc80ffc530bd2d54b09681f6edb9a415c362e4af2fe3d5e04137006fa21)
 //! [Fedimint Observer]: (https://observer.fedimint.org/)
-
+//!
+//! # About the name
+//!
+//! Lightning bolts are called "Blitz" in German and adding an "i" at the end
+//! makes it sound cute and wholesome for me :D
 use std::path::PathBuf;
 use std::str::FromStr;
 
