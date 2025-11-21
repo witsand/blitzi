@@ -1,5 +1,9 @@
 # Blitzi: Lightning made easy
 
+[![crates.io](https://img.shields.io/crates/v/blitzi.svg)](https://crates.io/crates/blitzi)
+[![docs.rs](https://docs.rs/blitzi/badge.svg)](https://docs.rs/blitzi)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Easy to use Bitcoin Lighning client that uses [Fedimint](https://fedimint.org/) as its backend.
 
 You want to build a lightning powered app but don't look forward to dealing
