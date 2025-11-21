@@ -9,6 +9,7 @@ keywords = ["Bitcoin", "Lightning", "Fedimint"]
 categories = ["cryptography::cryptocurrencies"]
 
 [dependencies]
+anyhow = "1"
 fedimint-bip39 = "0.9.0"
 fedimint-core = "0.9.0"
 fedimint-client = "0.9"
