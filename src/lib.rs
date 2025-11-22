@@ -459,6 +459,8 @@ impl Blitzi {
             OperationId(hash.to_byte_array())
         }
 
-        get_payment_operation_id(payment_hash, 0)
+        // The first actual payment attempt starts at index 1 since index 0 is used to
+        // indicate that there was no previous payment attempt.
+        get_payment_operation_id(payment_hash, 1)
     }
 }
