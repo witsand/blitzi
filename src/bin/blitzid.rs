@@ -258,13 +258,16 @@ async fn main() -> anyhow::Result<()> {
         bearer_token: bearer_token.clone(),
     };
 
-    let app = Router::new()
-        .route("/health", get(health_check))
+    let protected_routes = Router::new()
         .route("/invoice", post(create_invoice))
         .route("/invoice/:payment_hash", get(check_invoice))
         .route("/pay", post(pay_invoice))
         .route("/balance", get(get_balance))
-        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware))
+        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
+
+    let app = Router::new()
+        .route("/health", get(health_check))
+        .merge(protected_routes)
         .with_state(state);
 
     let addr = format!("{}:{}", args.host, args.port);
