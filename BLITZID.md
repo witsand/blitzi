@@ -181,6 +181,8 @@ Pays a Lightning invoice.
 
 ## Example Usage
 
+For a complete Python example client, see [examples/blitzid_client.py](examples/blitzid_client.py).
+
 ### Using curl
 
 ```bash
