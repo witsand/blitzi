@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use axum::{
-    Json, Router,
-    extract::{Path, State},
-    http::{Request, StatusCode, header},
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
-    routing::{get, post},
-};
+use axum::body::Body;
+use axum::extract::{Path, State};
+use axum::http::{Request, StatusCode, header};
+use axum::middleware::{self, Next};
+use axum::response::Response;
+use axum::routing::{get, post};
+use axum::{Json, Router};
 use blitzi::{Amount, Blitzi};
 use clap::Parser;
+use fedimint_core::BitcoinHash;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
@@ -34,7 +34,7 @@ struct Args {
     #[arg(help = "Port to listen on")]
     port: u16,
 
-    #[arg(short, long, env = "BLITZID_HOST", default_value = "127.0.0.1")]
+    #[arg(short = 'H', long, env = "BLITZID_HOST", default_value = "127.0.0.1")]
     #[arg(help = "Host to bind to")]
     host: String,
 }
@@ -82,10 +82,10 @@ struct ErrorResponse {
     error: String,
 }
 
-async fn auth_middleware<B>(
+async fn auth_middleware(
     State(state): State<AppState>,
-    request: Request<B>,
-    next: Next<B>,
+    request: Request<Body>,
+    next: Next,
 ) -> Result<Response, StatusCode> {
     let auth_header = request
         .headers()
@@ -105,10 +105,14 @@ async fn create_invoice(
     Json(payload): Json<CreateInvoiceRequest>,
 ) -> Result<Json<CreateInvoiceResponse>, (StatusCode, Json<ErrorResponse>)> {
     let amount = Amount::from_msats(payload.amount_msats);
-    
-    match state.blitzi.lightning_invoice(amount, &payload.description).await {
+
+    match state
+        .blitzi
+        .lightning_invoice(amount, &payload.description)
+        .await
+    {
         Ok(invoice) => {
-            let payment_hash = hex::encode(invoice.payment_hash().as_ref());
+            let payment_hash = hex::encode(invoice.payment_hash().to_byte_array());
             Ok(Json(CreateInvoiceResponse {
                 invoice: invoice.to_string(),
                 payment_hash,
@@ -168,7 +172,7 @@ async fn get_balance(
 }
 
 /// Checks if an invoice has been paid by waiting for payment.
-/// 
+///
 /// Note: This endpoint blocks until the invoice is paid or times out, which is
 /// intentional behavior. Clients should use appropriate HTTP timeouts.
 async fn check_invoice(
@@ -198,9 +202,14 @@ async fn check_invoice(
 
     let mut hash_array = [0u8; 32];
     hash_array.copy_from_slice(&payment_hash_bytes);
-    let payment_hash_obj = fedimint_core::bitcoin::hashes::sha256::Hash::from_byte_array(hash_array);
+    let payment_hash_obj =
+        fedimint_core::bitcoin::hashes::sha256::Hash::from_byte_array(hash_array);
 
-    match state.blitzi.await_incoming_payment_by_hash(&payment_hash_obj).await {
+    match state
+        .blitzi
+        .await_incoming_payment_by_hash(&payment_hash_obj)
+        .await
+    {
         Ok(()) => Ok(Json(InvoiceStatusResponse { paid: true })),
         Err(e) => {
             let error_msg = e.to_string();
@@ -235,7 +244,7 @@ fn generate_bearer_token() -> String {
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     const TOKEN_LEN: usize = 32;
     let mut rng = rand::thread_rng();
-    
+
     (0..TOKEN_LEN)
         .map(|_| {
             let idx = rng.gen_range(0..CHARSET.len());
@@ -274,7 +283,10 @@ async fn main() -> anyhow::Result<()> {
             .context("Invalid federation invite code")?;
     }
 
-    let blitzi = builder.build().await.context("Failed to build Blitzi client")?;
+    let blitzi = builder
+        .build()
+        .await
+        .context("Failed to build Blitzi client")?;
     info!("Blitzi client initialized successfully");
 
     let state = AppState {
@@ -287,7 +299,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/invoice/:payment_hash", get(check_invoice))
         .route("/pay", post(pay_invoice))
         .route("/balance", get(get_balance))
-        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ));
 
     let app = Router::new()
         .route("/health", get(health_check))
@@ -301,10 +316,8 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .context("Failed to bind to address")?;
-    
-    axum::serve(listener, app)
-        .await
-        .context("Server error")?;
+
+    axum::serve(listener, app).await.context("Server error")?;
 
     Ok(())
 }
