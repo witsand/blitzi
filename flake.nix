@@ -25,6 +25,26 @@
 
         lib = nixpkgs.lib;
 
+        # Filter source to avoid rebuilding on irrelevant changes
+        src = lib.cleanSourceWith {
+          src = ./.;
+          filter =
+            path: type:
+            let
+              baseName = baseNameOf path;
+              relPath = lib.removePrefix (toString ./. + "/") (toString path);
+            in
+            # Include Cargo files
+            baseName == "Cargo.toml"
+            || baseName == "Cargo.lock"
+            ||
+              # Include Rust source files
+              lib.hasSuffix ".rs" baseName
+            ||
+              # Include src directory
+              (type == "directory" && (baseName == "src" || lib.hasPrefix "src/" relPath));
+        };
+
         rustToolchain = pkgs.rust-bin.stable.latest.default.override {
           extensions = [
             "rust-src"
@@ -42,7 +62,7 @@
           pname = "blitzid";
           version = "0.3.0";
 
-          src = ./.;
+          inherit src;
 
           cargoLock = {
             lockFile = ./Cargo.lock;
