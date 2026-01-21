@@ -2,36 +2,58 @@
 
 Blitzid is a standalone binary that exposes the Blitzi library functionality as a REST API, allowing it to be used from any programming language.
 
-## Building
+## Running with Docker (Recommended)
 
-### Using Nix (Recommended)
+The easiest way to run blitzid is via Docker.
 
-The project provides a Nix development shell with the correct compiler version and dependencies:
+> **WARNING: Data Persistence is Critical for Fund Safety**
+>
+> Blitzid stores your Fedimint wallet data in the data directory. **If you lose this data, you lose access to your funds.** Always attach a persistent volume to the `/data` directory to ensure your wallet data survives container restarts and updates.
 
-```bash
-# Install Nix (if not already installed)
-sh <(curl -L https://nixos.org/nix/install) --daemon
-
-# Enter the development shell
-nix develop
-
-# Build the binary
-cargo build --release --bin blitzid
-```
-
-### Using Standard Rust Toolchain
-
-If you have a compatible Rust toolchain installed (stable, with RocksDB system dependencies), you can build without Nix:
+### Docker Run
 
 ```bash
-# Make sure you have required system dependencies (e.g., on Ubuntu/Debian):
-sudo apt-get install pkg-config cmake clang libclang-dev
-
-# Build the binary
-cargo build --release --bin blitzid
+docker run -d \
+  --name blitzid \
+  -p 3000:3000 \
+  -v blitzid-data:/data \
+  -e BLITZID_BEARER_TOKEN="your-secure-token-here" \
+  ghcr.io/elsirion/blitzid:latest
 ```
 
-The binary will be available at `target/release/blitzid`.
+### Docker Compose (Recommended)
+
+Create a `docker-compose.yml` file:
+
+```yaml
+services:
+  blitzid:
+    image: ghcr.io/elsirion/blitzid:latest
+    container_name: blitzid
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - BLITZID_BEARER_TOKEN=your-secure-token-here
+      # Optional: connect to a specific federation
+      # - BLITZID_FEDERATION=fed11...
+    volumes:
+      # IMPORTANT: This volume persists your wallet data.
+      # Without it, you WILL lose funds on container recreation.
+      - blitzid-data:/data
+
+volumes:
+  blitzid-data:
+```
+
+Then run:
+
+```bash
+docker compose up -d
+
+# View logs to get the bearer token (if not set via environment)
+docker compose logs blitzid
+```
 
 ## Configuration
 
@@ -45,7 +67,7 @@ Blitzid can be configured via environment variables or command-line arguments:
 | `-p, --port` | `BLITZID_PORT` | Port to listen on | 3000 |
 | `-h, --host` | `BLITZID_HOST` | Host to bind to | 127.0.0.1 |
 
-## Running
+## Running from Binary
 
 ### Basic Usage
 
