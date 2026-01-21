@@ -34,7 +34,7 @@ struct Args {
     #[arg(help = "Port to listen on")]
     port: u16,
 
-    #[arg(short = 'H', long, env = "BLITZID_HOST", default_value = "127.0.0.1")]
+    #[arg(short = 'H', long, env = "BLITZID_HOST", default_value = "0.0.0.0")]
     #[arg(help = "Host to bind to")]
     host: String,
 }
