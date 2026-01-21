@@ -30,25 +30,25 @@ making your own choice which federation to use based on your own due
 diligence.
 
 ```rust
-# use anyhow::Result;
+use anyhow::Result;
 use blitzi::Blitzi;
 
-# #[tokio::main]
-# async fn main() -> Result<()> {
-// Create a new Blitzi client with default settings
-let blitzi = Blitzi::new().await?;
-
-// Generate a new Lightning invoice for 1000 millisatoshi and await its payment
-let invoice = blitzi.lightning_invoice(1000, "Test payment").await?;
-println!("Invoice: {}", invoice);
-
-match blitzi.await_incoming_payment(&invoice).await {
-    Ok(()) => println!("Payment received"),
-    Err(_) => println!("Invoice expired"),
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Create a new Blitzi client with default settings
+    let blitzi = Blitzi::new().await?;
+    
+    // Generate a new Lightning invoice for 1000 millisatoshi and await its payment
+    let invoice = blitzi.lightning_invoice(1000, "Test payment").await?;
+    println!("Invoice: {}", invoice);
+    
+    match blitzi.await_incoming_payment(&invoice).await {
+        Ok(()) => println!("Payment received"),
+        Err(_) => println!("Invoice expired"),
+    }
+    
+    Ok(())
 }
-
-# Ok(())
-# }
 ```
 
 ## Fedimint
