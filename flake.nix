@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -12,6 +13,7 @@
       self,
       nixpkgs,
       rust-overlay,
+      crane,
       flake-utils,
       ...
     }:
@@ -25,7 +27,17 @@
 
         lib = nixpkgs.lib;
 
-        # Filter source to avoid rebuilding on irrelevant changes
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [
+            "rust-src"
+            "rust-analyzer"
+          ];
+        };
+
+        # Initialize crane with our rust toolchain
+        craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+        # Filter source to only include Rust-related files
         src = lib.cleanSourceWith {
           src = ./.;
           filter =
@@ -45,28 +57,16 @@
               (type == "directory" && (baseName == "src" || lib.hasPrefix "src/" relPath));
         };
 
-        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-          extensions = [
-            "rust-src"
-            "rust-analyzer"
-          ];
-        };
-
         build_arch_underscores =
           lib.strings.replaceStrings [ "-" ] [ "_" ]
             pkgs.stdenv.buildPlatform.config;
 
         rocksdb = pkgs.rocksdb_8_11.override { enableLiburing = false; };
 
-        blitzidPackage = pkgs.rustPlatform.buildRustPackage {
-          pname = "blitzid";
-          version = "0.3.0";
-
+        # Common arguments for crane builds
+        commonArgs = {
           inherit src;
-
-          cargoLock = {
-            lockFile = ./Cargo.lock;
-          };
+          strictDeps = true;
 
           nativeBuildInputs = with pkgs; [
             pkg-config
@@ -79,13 +79,10 @@
           # Disable fortify to avoid GCC warnings-as-errors in aws-lc-sys
           hardeningDisable = [ "fortify" ];
 
-          buildAndTestSubdir = null;
-          cargoBuildFlags = [
-            "--bin"
-            "blitzid"
-          ];
-
           LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+
+          "ROCKSDB_STATIC" = "true";
+          "ROCKSDB_LIB_DIR" = "${rocksdb}/lib/";
 
           # Wrap CC to disable warnings that cause aws-lc-sys build to fail
           preBuild = ''
@@ -97,17 +94,27 @@
             chmod +x "$CC_WRAPPER"
             export CC="$CC_WRAPPER"
           '';
-
-          "ROCKSDB_${build_arch_underscores}_STATIC" = "true";
-          "ROCKSDB_${build_arch_underscores}_LIB_DIR" = "${rocksdb}/lib/";
-
-          meta = with lib; {
-            description = "Blitzi Lightning REST API daemon";
-            homepage = "https://github.com/elsirion/blitzi";
-            license = licenses.mit;
-            maintainers = [ ];
-          };
         };
+
+        # Stage 1: Build only the dependencies (cached separately)
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+        # Stage 2: Build the actual application using cached dependencies
+        blitzidPackage = craneLib.buildPackage (
+          commonArgs
+          // {
+            inherit cargoArtifacts;
+
+            cargoExtraArgs = "--bin blitzid";
+
+            meta = with lib; {
+              description = "Blitzi Lightning REST API daemon";
+              homepage = "https://github.com/elsirion/blitzi";
+              license = licenses.mit;
+              maintainers = [ ];
+            };
+          }
+        );
 
         blitzid-image = pkgs.dockerTools.buildLayeredImage {
           name = "blitzid";
@@ -158,8 +165,8 @@
 
           LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
           RUSTFMT = "${pkgs.rust-bin.nightly.latest.rustfmt}/bin/rustfmt";
-          "ROCKSDB_${build_arch_underscores}_STATIC" = "true";
-          "ROCKSDB_${build_arch_underscores}_LIB_DIR" = "${rocksdb}/lib/";
+          "ROCKSDB_STATIC" = "true";
+          "ROCKSDB_LIB_DIR" = "${rocksdb}/lib/";
 
           # Disable warnings that cause aws-lc-sys build to fail in release mode
           NIX_CFLAGS_COMPILE = "-Wno-error=stringop-overflow -Wno-error=array-bounds -Wno-error=restrict";
