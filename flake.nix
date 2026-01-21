@@ -124,6 +124,10 @@
             Cmd = [
               "${blitzidPackage}/bin/blitzid"
             ];
+            Env = [
+              "BLITZID_HOST=0.0.0.0"
+            ];
+            Expose = [ "3000" ];
           };
         };
       in
